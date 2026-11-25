@@ -7,7 +7,11 @@ import { env } from "../env";
 
 export type DB = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-const migrationsFolder = path.join(path.dirname(fileURLToPath(import.meta.url)), "migrations");
+// Source runs from server/db; the bundle runs from dist/server.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const migrationsFolder =
+  [path.join(here, "migrations"), path.resolve("server/db/migrations")].find((p) => fs.existsSync(p)) ??
+  path.join(here, "migrations");
 
 /**
  * Production: Postgres via DATABASE_URL.

@@ -175,3 +175,14 @@ describe("twilio signature", () => {
     expect(verifyTwilioSignature("token", url, params, undefined)).toBe(false);
   });
 });
+
+import { personName } from "../server/core/normalize";
+describe("personName", () => {
+  it("reorders people and leaves entities whole", () => {
+    expect(personName("GARCIA, MARIA")).toBe("Maria Garcia");
+    expect(personName("MCDONALD, JOHN R & MARY")).toBe("John McDonald");
+    expect(personName("SUNSET HOLDINGS LLC")).toBe("Sunset Holdings LLC");
+    expect(personName("ESTATE OF JOHN SMITH")).toBe("Estate Of John Smith");
+    expect(personName("  ")).toBeNull();
+  });
+});

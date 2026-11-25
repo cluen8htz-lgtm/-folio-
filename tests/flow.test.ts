@@ -53,7 +53,7 @@ describe("lead → outreach → reply", () => {
     const r = await importSkipTrace(db, fixture("skiptrace.csv"));
     expect(r).toEqual({ rows: 3, matched: 2, unmatched: 1 });
     const all = await db.select().from(contacts);
-    const smith = all.find((c) => c.name === "SMITH, JOHN")!;
+    const smith = all.find((c) => c.name === "John Smith")!;
     expect(smith.phone).toBe("+13055550199");
     expect(smith.onDncList).toBe(true);
     expect(smith.phoneConsent).toBe("none");
@@ -63,8 +63,8 @@ describe("lead → outreach → reply", () => {
     const [ava] = await db.select().from(employees);
     await db.update(employees).set({ trust: { ...ava!.trust, send_sms: "act" } }).where(eq(employees.id, ava!.id));
     const rows = await db.select({ deal: deals, contact: contacts }).from(deals).innerJoin(contacts, eq(contacts.id, deals.contactId));
-    const smith = rows.find((r) => r.contact.name === "SMITH, JOHN")!;
-    const garcia = rows.find((r) => r.contact.name === "GARCIA, MARIA")!;
+    const smith = rows.find((r) => r.contact.name === "John Smith")!;
+    const garcia = rows.find((r) => r.contact.name === "Maria Garcia")!;
 
     const blocked = await requestOutreach(db, { dealId: smith.deal.id, employeeId: ava!.id, channel: "sms", goal: "intro" });
     expect(blocked.outcome).toBe("blocked");
@@ -107,7 +107,7 @@ describe("lead → outreach → reply", () => {
     const pending = await db.select().from(messages).where(eq(messages.dealId, deal!.id));
     expect(pending).toHaveLength(1);
     expect(pending[0]!.status).toBe("pending_approval");
-    expect(pending[0]!.body).toContain("Hi LEE,"); // template draft (no API key in tests)
+    expect(pending[0]!.body).toContain("Hi Ann,"); // template draft (no API key in tests)
 
     const sent = await approveMessage(db, pending[0]!.id, { body: "Hi Ann, this is Ava. Would you consider an offer on 9 NE 1st Ave?" });
     expect(sent.status).toBe("sent");

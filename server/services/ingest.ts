@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { DB } from "../db/client";
 import { contacts, deals, importRuns, properties, signals } from "../db/schema";
 import { isAbsentee, scoreProperty } from "../core/scoring";
-import { normalizeFolio, normalizePhone } from "../core/normalize";
+import { normalizeFolio, normalizePhone, personName } from "../core/normalize";
 import { parseCsv, pick } from "../connectors/csv";
 import type { SignalRecord } from "../connectors/types";
 import { enrollDeal } from "../jobs/automations";
@@ -86,7 +86,7 @@ async function ensureDeal(db: DB, propertyId: number, ownerName: string | null):
   if (existing) return null;
   const [contact] = await db
     .insert(contacts)
-    .values({ propertyId, name: ownerName ?? "Owner" })
+    .values({ propertyId, name: personName(ownerName) ?? "Owner" })
     .returning({ id: contacts.id });
   const [deal] = await db
     .insert(deals)

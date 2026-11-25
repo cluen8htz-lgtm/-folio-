@@ -42,3 +42,26 @@ export function parseMoney(raw: unknown): number | null {
   const n = Number(String(raw).replace(/[$,\s]/g, ""));
   return Number.isFinite(n) ? n : null;
 }
+
+const ENTITY = /\b(LLC|L\.L\.C|INC|CORP|CORPORATION|CO|COMPANY|TRUST|TRUSTEE|TR|ESTATE|EST|BANK|ASSOCIATION|ASSN|LTD|LP|LLP|PARTNERSHIP|HOLDINGS|PROPERTIES|INVESTMENTS|CHURCH|CITY|COUNTY)\b/i;
+
+function titleCase(s: string): string {
+  return s.toLowerCase().replace(/\b([a-z])([a-z']*)/g, (_, a: string, b: string) => a.toUpperCase() + b)
+    .replace(/\bMc([a-z])/g, (_, c: string) => `Mc${c.toUpperCase()}`)
+    .replace(/\b(Llc|Inc|Lp|Llp)\b/g, (m) => m.toUpperCase());
+}
+
+/**
+ * Public records list people as "LAST, FIRST MIDDLE". Turn that into
+ * "First Last" for messages; leave companies, trusts and estates whole.
+ */
+export function personName(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const s = raw.trim().replace(/\s+/g, " ");
+  if (ENTITY.test(s)) return titleCase(s);
+  // Multiple owners ("SMITH, JOHN & MARY"): keep the first person.
+  const [last, rest] = s.split(/,\s*/, 2) as [string, string | undefined];
+  if (!rest) return titleCase(s);
+  const first = rest.split(/\s*(?:&|\bAND\b)\s*/i)[0]!.split(" ")[0]!;
+  return titleCase(`${first} ${last}`);
+}

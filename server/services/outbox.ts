@@ -25,8 +25,6 @@ import { emailFooter, sendEmail, unsubscribeUrl } from "./email";
  * and every send re-checks compliance at the moment it goes out.
  */
 
-const TEAM_NAME = process.env.TEAM_NAME ?? "our team";
-
 export async function audit(db: DB, actor: string, action: string, subject: string, details: Record<string, unknown> = {}) {
   await db.insert(auditLog).values({ actor, action, subject, details });
 }
@@ -89,7 +87,7 @@ export async function buildDraftContext(
     contactId: contact.id,
     ctx: {
       employee,
-      teamName: TEAM_NAME,
+      teamName: env.TEAM_NAME,
       memories: mems.map((m) => m.content),
       contact: { name: contact.name },
       property: {

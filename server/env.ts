@@ -13,6 +13,7 @@ const schema = z.object({
   APP_SECRET: z.string().default("dev-secret"),
   APP_PASSWORD: z.string().default("folio"),
   PUBLIC_URL: z.string().default("http://localhost:3000"),
+  TEAM_NAME: z.string().default("our team"),
   TEAM_TIMEZONE: z.string().default("America/New_York"),
   ANTHROPIC_API_KEY: z.string().optional(),
   TWILIO_ACCOUNT_SID: z.string().optional(),

@@ -22,7 +22,7 @@ export function createApp(db: DB) {
     trpcServer({
       endpoint: "/api/trpc",
       router: appRouter,
-      createContext: (_opts, c) => createContext(c),
+      createContext: (opts, c) => createContext(c, opts.resHeaders),
     }),
   );
 

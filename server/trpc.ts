@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { Context as HonoContext } from "hono";
-import { getCookie, setCookie, deleteCookie } from "hono/cookie";
+import { getCookie } from "hono/cookie";
 import type { DB } from "./db/client";
 import { env } from "./env";
 
@@ -18,19 +18,27 @@ export function safeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(ha, hb);
 }
 
+function cookie(value: string, maxAge: number): string {
+  return [
+    `${SESSION_COOKIE}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAge}`,
+    ...(env.isProd ? ["Secure"] : []),
+  ].join("; ");
+}
+
+/**
+ * The tRPC fetch adapter builds its own Response, so cookies must go on
+ * its resHeaders rather than on the Hono context.
+ */
 export function createContextFactory(db: DB) {
-  return (c: HonoContext) => ({
+  return (c: HonoContext, resHeaders: Headers) => ({
     db,
     authed: safeEqual(getCookie(c, SESSION_COOKIE) ?? "", sessionValue()),
-    login: () =>
-      setCookie(c, SESSION_COOKIE, sessionValue(), {
-        httpOnly: true,
-        sameSite: "Lax",
-        secure: env.isProd,
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      }),
-    logout: () => deleteCookie(c, SESSION_COOKIE, { path: "/" }),
+    login: () => resHeaders.append("Set-Cookie", cookie(sessionValue(), 60 * 60 * 24 * 30)),
+    logout: () => resHeaders.append("Set-Cookie", cookie("", 0)),
   });
 }
 
