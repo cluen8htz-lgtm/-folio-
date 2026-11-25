@@ -22,6 +22,15 @@ export function Imports() {
   const upload = trpc.imports.uploadCsv.useMutation({ onSuccess: () => { setCsv(null); preview.reset(); refresh(); } });
   const skip = trpc.imports.skipTrace.useMutation({ onSuccess: refresh });
   const live = trpc.imports.runLive.useMutation({ onSuccess: refresh });
+  const [exportMin, setExportMin] = useState(40);
+  const exportCsv = trpc.imports.exportForSkipTrace.useMutation({
+    onSuccess: ({ csv }) => {
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: `skip-trace-${new Date().toISOString().slice(0, 10)}.csv` });
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+  });
 
   const readFile = (f: File | undefined, then: (text: string) => void) => {
     if (!f) return;
@@ -83,13 +92,33 @@ export function Imports() {
         </div>
       </section>
       <section className="card p-4 text-sm">
-        <h2 className="mb-1 font-medium">Skip-trace results</h2>
+        <h2 className="mb-1 font-medium">Skip tracing</h2>
         <p className="mb-3 text-muted">
-          Upload your skip-trace vendor's CSV (folio, phone, email, DNC flag). Numbers from skip tracing have no consent, so first texts to them always go through Approvals.
+          1. Export leads that have no phone, then upload that file to PropStream, REISkip, BatchData or any skip-trace service.
+          2. Upload their results file here. Folio reads Phone 1…10 with type and DNC per number, emails and litigator flags; it matches rows by folio/APN or by street address and zip.
+          It picks the best mobile number that isn't on the DNC list and keeps the rest as alternates. Numbers from skip tracing have no consent, so first texts always go through Approvals; known TCPA litigators are never texted.
         </p>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <select className="input w-auto" value={exportMin} onChange={(e) => setExportMin(Number(e.target.value))}>
+            <option value={0}>All leads without a phone</option>
+            <option value={40}>Score 40+ without a phone</option>
+            <option value={60}>Score 60+ without a phone</option>
+          </select>
+          <button className="btn-ghost" disabled={exportCsv.isPending} onClick={() => exportCsv.mutate({ minScore: exportMin })}>
+            {exportCsv.isPending ? "Preparing…" : "Export for skip trace"}
+          </button>
+          {exportCsv.data && <span className="text-muted">{exportCsv.data.count} leads exported</span>}
+        </div>
+        <label className="label">Upload results</label>
         <input type="file" accept=".csv,text/csv" className="text-sm" onChange={(e) => readFile(e.target.files?.[0], (text) => skip.mutate({ csv: text }))} />
-        {skip.data && <p className="mt-2 text-teal-800">{skip.data.matched} of {skip.data.rows} rows matched a lead ({skip.data.unmatched} folios not found).</p>}
-        <ErrorNote error={skip.error} />
+        {skip.data && (
+          <p className="mt-2 text-teal-800">
+            {skip.data.matched} of {skip.data.rows} rows matched a lead; {skip.data.withPhone} now have a phone
+            {skip.data.litigators ? `; ${skip.data.litigators} flagged as TCPA litigators (texting blocked)` : ""}
+            {skip.data.unmatched ? `; ${skip.data.unmatched} didn't match any lead` : ""}.
+          </p>
+        )}
+        <ErrorNote error={skip.error ?? exportCsv.error} />
       </section>
       <section className="card p-4 text-sm">
         <h2 className="mb-2 font-medium">Import history</h2>

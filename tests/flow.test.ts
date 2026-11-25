@@ -6,7 +6,8 @@ import { seedDefaults } from "../server/db/seed";
 import { automationRuns, automations, contacts, deals, employees, messages, properties, signals } from "../server/db/schema";
 import { parseSourceCsv } from "../server/connectors/miami-dade";
 import { fetchCodeViolations } from "../server/connectors/miami-dade/code-violations";
-import { importSkipTrace, ingest } from "../server/services/ingest";
+import { ingest } from "../server/services/ingest";
+import { importSkipTrace } from "../server/services/skiptrace";
 import { approveMessage, requestOutreach } from "../server/services/outbox";
 import { deliverDue, runDueAutomations } from "../server/jobs/automations";
 import { handleInboundSms } from "../server/services/inbound";
@@ -51,7 +52,7 @@ describe("lead → outreach → reply", () => {
 
   it("attaches skip-traced phones and DNC flags", async () => {
     const r = await importSkipTrace(db, fixture("skiptrace.csv"));
-    expect(r).toEqual({ rows: 3, matched: 2, unmatched: 1 });
+    expect(r).toEqual({ rows: 3, matched: 2, withPhone: 2, litigators: 0, unmatched: 1 });
     const all = await db.select().from(contacts);
     const smith = all.find((c) => c.name === "John Smith")!;
     expect(smith.phone).toBe("+13055550199");

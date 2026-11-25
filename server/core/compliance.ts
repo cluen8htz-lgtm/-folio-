@@ -27,6 +27,8 @@ export interface ComplianceInput {
   consent: Consent;
   optedOut: boolean;
   onDncList: boolean;
+  /** Vendor-flagged serial TCPA plaintiff. */
+  isLitigator?: boolean;
   hasAddress: boolean; // phone/email present
   /** Send times of outbound SMS to this contact in the last 24h. */
   recentOutboundSms: Date[];
@@ -69,6 +71,10 @@ export function checkCompliance(i: ComplianceInput): ComplianceResult {
       return { kind: "block", reason: "Set BUSINESS_POSTAL_ADDRESS: CAN-SPAM requires it in commercial email." };
     }
     return { kind: "ok", requiresHuman: i.consent === "none", notes: [] };
+  }
+
+  if (i.isLitigator && i.consent !== "written") {
+    return { kind: "block", reason: "Number is flagged as a known TCPA litigator." };
   }
 
   if (i.onDncList && i.consent === "none") {

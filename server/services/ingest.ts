@@ -1,9 +1,8 @@
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { DB } from "../db/client";
 import { contacts, deals, importRuns, properties, signals } from "../db/schema";
 import { isAbsentee, scoreProperty } from "../core/scoring";
-import { normalizeFolio, normalizePhone, personName } from "../core/normalize";
-import { parseCsv, pick } from "../connectors/csv";
+import { personName } from "../core/normalize";
 import type { SignalRecord } from "../connectors/types";
 import { enrollDeal } from "../jobs/automations";
 
@@ -94,39 +93,4 @@ async function ensureDeal(db: DB, propertyId: number, ownerName: string | null):
     .onConflictDoNothing()
     .returning({ id: deals.id });
   return deal?.id ?? null;
-}
-
-/**
- * Skip-trace results (folio → phone/email) from any vendor's CSV. Numbers
- * from skip tracing carry no consent, so they can only be texted by a
- * person, one message at a time, until the owner replies.
- */
-export async function importSkipTrace(db: DB, csv: string) {
-  const rows = parseCsv(csv);
-  let matched = 0;
-  const unmatched: string[] = [];
-  for (const row of rows) {
-    const folio = normalizeFolio(pick(row, ["folio", "folio number", "parcel", "parcel id", "apn"]));
-    const phone = normalizePhone(pick(row, ["phone", "phone 1", "phone1", "mobile", "cell", "wireless 1", "phone number"]));
-    const email = pick(row, ["email", "email 1", "email1", "email address"]);
-    const dnc = /^(y|yes|true|1|dnc)$/i.test(pick(row, ["dnc", "on dnc", "do not call", "phone 1 dnc"]) ?? "");
-    if (!folio) continue;
-    const [prop] = await db.select({ id: properties.id }).from(properties).where(eq(properties.folio, folio));
-    if (!prop) {
-      unmatched.push(folio);
-      continue;
-    }
-    const [contact] = await db.select().from(contacts).where(eq(contacts.propertyId, prop.id));
-    if (!contact) continue;
-    await db
-      .update(contacts)
-      .set({
-        phone: contact.phone ?? phone,
-        email: contact.email ?? email,
-        onDncList: contact.onDncList || dnc,
-      })
-      .where(and(eq(contacts.id, contact.id)));
-    matched++;
-  }
-  return { rows: rows.length, matched, unmatched: unmatched.length };
 }

@@ -34,7 +34,8 @@ import {
   requestOutreach,
   sendManual,
 } from "../services/outbox";
-import { importSkipTrace, ingest } from "../services/ingest";
+import { ingest } from "../services/ingest";
+import { exportForSkipTrace, importSkipTrace } from "../services/skiptrace";
 import { FILE_SOURCES, parseSourceCsv } from "../connectors/miami-dade";
 import { enrollDeal } from "../jobs/automations";
 import { runDailyImports } from "../jobs/scheduler";
@@ -172,6 +173,7 @@ const leadsRouter = router({
         phoneConsent: z.enum(CONSENT_LEVELS).optional(),
         emailConsent: z.enum(CONSENT_LEVELS).optional(),
         onDncList: z.boolean().optional(),
+        isLitigator: z.boolean().optional(),
         optedOutSms: z.boolean().optional(),
         optedOutEmail: z.boolean().optional(),
         notes: z.string().nullable().optional(),
@@ -430,6 +432,9 @@ const importsRouter = router({
   skipTrace: protectedProcedure
     .input(z.object({ csv: z.string().max(20_000_000) }))
     .mutation(({ ctx: { db }, input }) => importSkipTrace(db, input.csv)),
+  exportForSkipTrace: protectedProcedure
+    .input(z.object({ minScore: z.number().int().min(0).max(100).default(0) }))
+    .mutation(({ ctx: { db }, input }) => exportForSkipTrace(db, input)),
   runLive: protectedProcedure.mutation(async ({ ctx: { db } }) => {
     if (!env.MDC_CODE_VIOLATIONS_LAYER_URL) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "MDC_CODE_VIOLATIONS_LAYER_URL is not set." });
     return runDailyImports(db);

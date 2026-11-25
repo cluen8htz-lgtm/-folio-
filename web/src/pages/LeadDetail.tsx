@@ -124,6 +124,17 @@ function ContactCard({ contact, onChange }: { contact: NonNullable<Contact>; onC
       <h2 className="font-medium">Contact</h2>
       <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       <input className="input" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      {contact.phoneType && <p className="-mt-1 text-xs text-muted">Line type: {contact.phoneType}</p>}
+      {contact.altPhones.length > 0 && (
+        <div className="text-xs text-muted">
+          Other numbers:{" "}
+          {contact.altPhones.map((p, i) => (
+            <button key={p.number} className="mr-2 underline decoration-dotted" title="Use this number" onClick={() => setForm({ ...form, phone: p.number })}>
+              {p.number} ({p.type}{p.dnc ? ", DNC" : ""}){i < contact.altPhones.length - 1 ? "" : ""}
+            </button>
+          ))}
+        </div>
+      )}
       <input className="input" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       <button
         className="btn-ghost"
@@ -140,6 +151,7 @@ function ContactCard({ contact, onChange }: { contact: NonNullable<Contact>; onC
       </select>
       <div className="flex flex-wrap gap-3 pt-1">
         <Toggle label="On DNC list" checked={contact.onDncList} onChange={(v) => update.mutate({ contactId: contact.id, onDncList: v })} />
+        <Toggle label="TCPA litigator" checked={contact.isLitigator} onChange={(v) => update.mutate({ contactId: contact.id, isLitigator: v })} />
         <Toggle label="Opted out (text)" checked={contact.optedOutSms} onChange={(v) => update.mutate({ contactId: contact.id, optedOutSms: v })} />
         <Toggle label="Opted out (email)" checked={contact.optedOutEmail} onChange={(v) => update.mutate({ contactId: contact.id, optedOutEmail: v })} />
       </div>

@@ -1,0 +1,4 @@
+Input First Name,Input Last Name,Input Property Address,Input Property City,Input Property Zip,Phone1,Phone1 Type,Phone1 DNC,Phone2,Phone2 Type,Phone2 DNC,Phone3,Phone3 Type,Phone3 DNC,Email1,Email2,Litigator
+John,Smith,"77 SW 8th ""A"" Ave",Miami,33130,(305) 555-0300,Landline,N,305.555.0301,Wireless,Y,3055550302,Mobile,N,JOHN@EXAMPLE.COM,john2@example.com,N
+Maria,Garcia,123 NW 5th St,Miami,33128,305-555-0400,Mobile,N,,,,,,,,,Yes
+Nobody,Here,1 Nowhere Rd,Miami,33199,305-555-0500,Mobile,N,,,,,,,,,N

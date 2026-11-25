@@ -88,6 +88,11 @@ export const contacts = pgTable("contacts", {
   optedOutSms: boolean("opted_out_sms").notNull().default(false),
   optedOutEmail: boolean("opted_out_email").notNull().default(false),
   onDncList: boolean("on_dnc_list").notNull().default(false),
+  /** Skip-trace vendors flag numbers belonging to serial TCPA plaintiffs. */
+  isLitigator: boolean("is_litigator").notNull().default(false),
+  phoneType: text("phone_type").$type<"mobile" | "landline" | "voip" | "unknown">(),
+  /** Other numbers the vendor returned, best first. */
+  altPhones: jsonb("alt_phones").$type<{ number: string; type: string; dnc: boolean }[]>().notNull().default([]),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

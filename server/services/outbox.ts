@@ -55,6 +55,7 @@ async function complianceFor(db: DB, contactId: number, channel: "sms" | "email"
     consent: channel === "sms" ? c.phoneConsent : c.emailConsent,
     optedOut: channel === "sms" ? c.optedOutSms : c.optedOutEmail,
     onDncList: c.onDncList,
+    isLitigator: c.isLitigator,
     hasAddress: Boolean(channel === "sms" ? c.phone : c.email),
     recentOutboundSms: recent.map((r) => r.sentAt!).filter(Boolean),
     businessPostalAddress: env.BUSINESS_POSTAL_ADDRESS,
