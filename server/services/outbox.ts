@@ -15,6 +15,7 @@ import {
 import { env } from "../env";
 import { checkCompliance, type ComplianceResult } from "../core/compliance";
 import { decide } from "../core/trust";
+import { parseOwner } from "../core/owners";
 import { draftMessage, lessonFromEdit, type DraftContext } from "./ai";
 import { sendSms } from "./twilio";
 import { emailFooter, sendEmail, unsubscribeUrl } from "./email";
@@ -91,6 +92,7 @@ export async function buildDraftContext(
       teamName: env.TEAM_NAME,
       memories: mems.map((m) => m.content),
       contact: { name: contact.name },
+      estate: parseOwner(property.ownerName).isEstate,
       property: {
         address: property.address,
         city: property.city,

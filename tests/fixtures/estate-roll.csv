@@ -1,0 +1,4 @@
+Parcel ID (PIN),County REID,Property Address,Property City,Property ZIP,Owner of Record,Heir / Estate Signal,Signal Tier,Absentee Type,Owner Mailing Address,Mailing City,Mailing State,Mailing ZIP,Source
+30-2134-005-0120,123456,77 SW 8TH AVE,MIAMI,33130-1234,ALBERT TESTER EST OF & ROSA TESTER,ESTATE OF RECORD,TIER 1 — Curative Score 5 — Estate of record · Out-of-state absentee,Out-of-state absentee,12 ELM ST,NEWARK,NJ,07102,Synthetic test data
+01-3125-034-0010,98765,123 NW 5TH ST,UNINCORPORATED COUNTY,33128-0001,HENRY SAMPLE EST OF,ESTATE OF RECORD,TIER 2 — Curative Score 4 — Heir/estate signal · In-state absentee,In-state absentee,900 OAK AVE,ORLANDO,FL,32801,Synthetic test data
+04-2201-001-0050,4321,5 BAY RD,HIALEAH,33010-5555,PAT EXAMPLE TRS & THE EXAMPLE FAMILY TRUST & LOU EXAMPLE EST OF,ESTATE OF RECORD + TRUST-HELD,TIER 1 — Curative Score 5,In-state absentee,77 PINE CT,TAMPA,FL,33602,Synthetic test data

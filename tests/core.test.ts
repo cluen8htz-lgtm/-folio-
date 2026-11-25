@@ -182,7 +182,7 @@ describe("personName", () => {
     expect(personName("GARCIA, MARIA")).toBe("Maria Garcia");
     expect(personName("MCDONALD, JOHN R & MARY")).toBe("John McDonald");
     expect(personName("SUNSET HOLDINGS LLC")).toBe("Sunset Holdings LLC");
-    expect(personName("ESTATE OF JOHN SMITH")).toBe("Estate Of John Smith");
+    expect(personName("ESTATE OF JOHN SMITH")).toBe("Estate of John Smith");
     expect(personName("  ")).toBeNull();
   });
 });

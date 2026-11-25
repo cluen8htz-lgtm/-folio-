@@ -36,7 +36,7 @@ import {
 } from "../services/outbox";
 import { ingest } from "../services/ingest";
 import { exportForSkipTrace, importSkipTrace } from "../services/skiptrace";
-import { FILE_SOURCES, parseSourceCsv } from "../connectors/miami-dade";
+import { FILE_SOURCES, FILE_SOURCE_IDS, parseSourceCsv } from "../connectors/miami-dade";
 import { enrollDeal } from "../jobs/automations";
 import { runDailyImports } from "../jobs/scheduler";
 import { twilioConfigured } from "../services/twilio";
@@ -413,20 +413,20 @@ const tasksRouter = router({
 
 const importsRouter = router({
   sources: protectedProcedure.query(() =>
-    Object.entries(FILE_SOURCES).map(([type, s]) => ({ type: type as (typeof SIGNAL_TYPES)[number], ...s })),
+    FILE_SOURCE_IDS.map((id) => ({ id, label: FILE_SOURCES[id].label })),
   ),
   runs: protectedProcedure.query(({ ctx: { db } }) => db.select().from(importRuns).orderBy(desc(importRuns.startedAt)).limit(50)),
   preview: protectedProcedure
-    .input(z.object({ type: z.enum(SIGNAL_TYPES), csv: z.string().max(20_000_000) }))
+    .input(z.object({ sourceId: z.enum(FILE_SOURCE_IDS), csv: z.string().max(20_000_000) }))
     .mutation(({ input }) => {
-      const parsed = parseSourceCsv(input.type, input.csv);
+      const parsed = parseSourceCsv(input.sourceId, input.csv);
       return { valid: parsed.records.length, sample: parsed.records.slice(0, 5), skipped: parsed.skipped.slice(0, 20), skippedCount: parsed.skipped.length };
     }),
   uploadCsv: protectedProcedure
-    .input(z.object({ type: z.enum(SIGNAL_TYPES), csv: z.string().max(20_000_000) }))
+    .input(z.object({ sourceId: z.enum(FILE_SOURCE_IDS), csv: z.string().max(20_000_000) }))
     .mutation(async ({ ctx: { db }, input }) => {
-      const parsed = parseSourceCsv(input.type, input.csv);
-      const result = await ingest(db, FILE_SOURCES[input.type].source, parsed.records);
+      const parsed = parseSourceCsv(input.sourceId, input.csv);
+      const result = await ingest(db, FILE_SOURCES[input.sourceId].source, parsed.records);
       return { ...result, skipped: parsed.skipped.length };
     }),
   skipTrace: protectedProcedure

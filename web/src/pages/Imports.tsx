@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc";
 import { ErrorNote, PageHeader } from "../App";
-import { SIGNAL_LABEL, formatFolio, when } from "../lib/format";
+import { formatFolio, when } from "../lib/format";
+import { fileToCsv } from "../lib/sheet";
 
-type SignalType = "foreclosure" | "probate" | "tax_lien" | "code_violation";
+type SourceId = "foreclosure" | "probate" | "estate_roll" | "tax_lien" | "code_violation";
+const ACCEPT = ".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 export function Imports() {
   const utils = trpc.useUtils();
   const sources = trpc.imports.sources.useQuery();
   const runs = trpc.imports.runs.useQuery();
   const summary = trpc.dashboard.summary.useQuery();
-  const [type, setType] = useState<SignalType>("foreclosure");
+  const [sourceId, setSourceId] = useState<SourceId>("foreclosure");
+  const [readError, setReadError] = useState<string | null>(null);
   const [csv, setCsv] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
   const preview = trpc.imports.preview.useMutation();
@@ -35,7 +38,10 @@ export function Imports() {
   const readFile = (f: File | undefined, then: (text: string) => void) => {
     if (!f) return;
     setFileName(f.name);
-    f.text().then(then);
+    setReadError(null);
+    fileToCsv(f)
+      .then(then)
+      .catch((err: unknown) => setReadError(`Couldn't read ${f.name}: ${err instanceof Error ? err.message : String(err)}`));
   };
 
   return (
@@ -44,23 +50,23 @@ export function Imports() {
       <section className="card p-4 text-sm">
         <h2 className="mb-1 font-medium">Miami-Dade public records</h2>
         <p className="mb-3 text-muted">
-          Upload an export (CSV) from the Clerk of Court, Tax Collector or code compliance. Columns are matched by name; rows need a 13-digit folio. Re-uploading the same file adds nothing twice.
+          Upload an export (CSV or Excel) from the Clerk of Court, Tax Collector or code compliance. Columns are matched by name; rows need a 13-digit folio. Re-uploading the same file adds nothing twice.
         </p>
         <div className="flex flex-wrap gap-2">
-          <select className="input w-auto" value={type} onChange={(e) => { setType(e.target.value as SignalType); preview.reset(); }}>
-            {sources.data?.map((s) => <option key={s.type} value={s.type}>{s.label}</option>)}
+          <select className="input w-auto" value={sourceId} onChange={(e) => { setSourceId(e.target.value as SourceId); setCsv(null); preview.reset(); }}>
+            {sources.data?.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
           <input
             type="file"
-            accept=".csv,text/csv"
+            accept={ACCEPT}
             className="text-sm"
-            onChange={(e) => readFile(e.target.files?.[0], (text) => { setCsv(text); preview.mutate({ type, csv: text }); })}
+            onChange={(e) => readFile(e.target.files?.[0], (text) => { setCsv(text); preview.mutate({ sourceId, csv: text }); })}
           />
         </div>
         {preview.data && (
           <div className="mt-3 rounded-md border border-line bg-slate-50 p-3">
             <p>
-              <b>{fileName}</b>: {preview.data.valid} usable rows as {SIGNAL_LABEL[type]}, {preview.data.skippedCount} skipped.
+              <b>{fileName}</b>: {preview.data.valid} usable rows as "{sources.data?.find((x) => x.id === sourceId)?.label}", {preview.data.skippedCount} skipped.
             </p>
             {preview.data.sample.length > 0 && (
               <ul className="mt-1 text-xs text-muted">
@@ -74,13 +80,13 @@ export function Imports() {
                 Skipped rows: {preview.data.skipped.slice(0, 8).map((s) => `${s.row} (${s.reason})`).join(", ")}
               </p>
             )}
-            <button className="btn-primary mt-2" disabled={!csv || preview.data.valid === 0 || upload.isPending} onClick={() => csv && upload.mutate({ type, csv })}>
+            <button className="btn-primary mt-2" disabled={!csv || preview.data.valid === 0 || upload.isPending} onClick={() => csv && upload.mutate({ sourceId, csv })}>
               {upload.isPending ? "Importing…" : `Import ${preview.data.valid} records`}
             </button>
           </div>
         )}
         {upload.data && <p className="mt-2 text-teal-800">Imported: {upload.data.created} new records, {upload.data.newDeals} new leads.</p>}
-        <ErrorNote error={preview.error ?? upload.error} />
+        <ErrorNote error={preview.error ?? upload.error ?? (readError ? { message: readError } : null)} />
         <div className="mt-4 border-t border-line pt-3">
           <button className="btn-ghost" disabled={!summary.data?.setup.liveCodeViolations || live.isPending} onClick={() => live.mutate()}>
             {live.isPending ? "Pulling…" : "Pull code violations now"}
@@ -110,7 +116,7 @@ export function Imports() {
           {exportCsv.data && <span className="text-muted">{exportCsv.data.count} leads exported</span>}
         </div>
         <label className="label">Upload results</label>
-        <input type="file" accept=".csv,text/csv" className="text-sm" onChange={(e) => readFile(e.target.files?.[0], (text) => skip.mutate({ csv: text }))} />
+        <input type="file" accept={ACCEPT} className="text-sm" onChange={(e) => readFile(e.target.files?.[0], (text) => skip.mutate({ csv: text }))} />
         {skip.data && (
           <p className="mt-2 text-teal-800">
             {skip.data.matched} of {skip.data.rows} rows matched a lead; {skip.data.withPhone} now have a phone

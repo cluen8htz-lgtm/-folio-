@@ -53,6 +53,8 @@ export interface DraftContext {
   teamName: string;
   memories: string[];
   contact: { name: string };
+  /** Owner of record is a deceased owner's estate; contact is a co-owner/heir (or unknown). */
+  estate: boolean;
   property: { address: string | null; city: string | null; signals: string[] };
   history: { direction: "inbound" | "outbound"; channel: string; body: string; at: string }[];
   channel: "sms" | "email";
@@ -72,6 +74,7 @@ Rules that always apply:
 - Write like a real person on the team: short, warm, no hype, no emojis unless the owner used them.
 - SMS: one or two sentences, under 300 characters, no links. Identify the team by first name and team name in a first message.
 - Email: a short subject and three or fewer short paragraphs. Do not add a signature or unsubscribe line; the system appends the required footer.
+- Estate properties: the owner of record has died. You are writing to a surviving co-owner or family member. Never address, name or mention the deceased owner, the death, the estate or probate. If the contact's name begins "Estate of", you don't know who you're writing to: greet without a name and ask whether they're the right person to speak with about the property.
 - If the conversation shows they declined or asked not to be contacted, write a brief, polite closing note and nothing more.`;
 
 export async function draftMessage(ctx: DraftContext): Promise<{ subject: string | null; body: string }> {
@@ -84,7 +87,7 @@ ${ctx.employee.instructions ? `Your instructions from the team:\n${ctx.employee.
 How this team works (follow these):
 ${ctx.memories.length ? ctx.memories.map((m) => `- ${m}`).join("\n") : "- (nothing recorded yet)"}
 
-Owner: ${ctx.contact.name}
+Writing to: ${ctx.contact.name}${ctx.estate ? " (estate property: see the estate rule)" : ""}
 Property: ${[ctx.property.address, ctx.property.city].filter(Boolean).join(", ") || "unknown address"}
 Internal notes on the property (never mention these to the owner): ${ctx.property.signals.join("; ") || "none"}
 
@@ -97,12 +100,15 @@ Write the next ${ctx.channel === "sms" ? "text message" : "email"}. Its goal: ${
 }
 
 export function templateDraft(ctx: DraftContext): { subject: string | null; body: string } {
-  const first = ctx.contact.name.split(/\s+/)[0] ?? "there";
+  const unknownPerson = /^estate of\b/i.test(ctx.contact.name);
+  const hi = unknownPerson ? "Hi" : `Hi ${ctx.contact.name.split(/\s+/)[0] ?? "there"}`;
   const where = ctx.property.address ? ` on ${ctx.property.address}` : "";
   const firstContact = ctx.history.length === 0;
   const body = firstContact
-    ? `Hi ${first}, this is ${ctx.employee.name} with ${ctx.teamName}. Would you consider an offer for your property${where}?`
-    : `Hi ${first}, ${ctx.employee.name} again with ${ctx.teamName}. Just following up: is selling the property${where} something you'd consider?`;
+    ? unknownPerson
+      ? `${hi}, this is ${ctx.employee.name} with ${ctx.teamName}. Are you the right person to talk to about the property${where}? We'd like to make an offer on it.`
+      : `${hi}, this is ${ctx.employee.name} with ${ctx.teamName}. Would you consider an offer for ${ctx.estate ? "the" : "your"} property${where}?`
+    : `${hi}, ${ctx.employee.name} again with ${ctx.teamName}. Just following up: is selling the property${where} something you'd consider?`;
   return { subject: ctx.channel === "email" ? "About your property" : null, body };
 }
 
