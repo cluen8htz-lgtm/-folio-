@@ -186,3 +186,20 @@ describe("personName", () => {
     expect(personName("  ")).toBeNull();
   });
 });
+
+import { clearLoginFailures, loginBlocked, recordLoginFailure } from "../server/trpc";
+describe("login throttling", () => {
+  it("blocks an IP after 8 failures for 15 minutes", () => {
+    const t0 = 1_000_000;
+    for (let i = 0; i < 8; i++) {
+      expect(loginBlocked("1.2.3.4", t0)).toBe(false);
+      recordLoginFailure("1.2.3.4", t0);
+    }
+    expect(loginBlocked("1.2.3.4", t0 + 1000)).toBe(true);
+    expect(loginBlocked("5.6.7.8", t0 + 1000)).toBe(false);
+    expect(loginBlocked("1.2.3.4", t0 + 15 * 60_000 + 1)).toBe(false);
+    recordLoginFailure("9.9.9.9", t0);
+    clearLoginFailures("9.9.9.9");
+    expect(loginBlocked("9.9.9.9", t0)).toBe(false);
+  });
+});

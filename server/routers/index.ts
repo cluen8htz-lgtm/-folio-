@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
-import { protectedProcedure, publicProcedure, router, safeEqual } from "../trpc";
+import { clearLoginFailures, loginBlocked, protectedProcedure, publicProcedure, recordLoginFailure, router, safeEqual } from "../trpc";
 import { env } from "../env";
 import {
   ACTIONS,
@@ -46,7 +46,14 @@ const id = z.number().int().positive();
 const authRouter = router({
   me: publicProcedure.query(({ ctx }) => ({ authed: ctx.authed })),
   login: publicProcedure.input(z.object({ password: z.string() })).mutation(({ ctx, input }) => {
-    if (!safeEqual(input.password, env.APP_PASSWORD)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Wrong password." });
+    if (loginBlocked(ctx.ip)) {
+      throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Try again in 15 minutes." });
+    }
+    if (!safeEqual(input.password, env.APP_PASSWORD)) {
+      recordLoginFailure(ctx.ip);
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Wrong password." });
+    }
+    clearLoginFailures(ctx.ip);
     ctx.login();
     return { ok: true };
   }),

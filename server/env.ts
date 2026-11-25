@@ -28,9 +28,10 @@ const schema = z.object({
   IMPORT_DAILY_AT: z.string().default("06:00"),
 });
 
-const parsed = schema.parse(
-  Object.fromEntries(Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v])),
-);
+const raw = Object.fromEntries(Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v]));
+// Railway exposes the service's public domain; use it when PUBLIC_URL isn't set.
+if (!raw.PUBLIC_URL && raw.RAILWAY_PUBLIC_DOMAIN) raw.PUBLIC_URL = `https://${raw.RAILWAY_PUBLIC_DOMAIN}`;
+const parsed = schema.parse(raw);
 
 export const env = {
   ...parsed,
@@ -38,6 +39,12 @@ export const env = {
   twilioDryRun: parsed.TWILIO_DRY_RUN ?? true,
 };
 
-if (env.isProd && (env.APP_SECRET === "dev-secret" || env.APP_PASSWORD === "folio")) {
-  throw new Error("Set APP_SECRET and APP_PASSWORD in production.");
+if (env.isProd) {
+  const problems: string[] = [];
+  if (env.APP_SECRET === "dev-secret" || env.APP_SECRET.length < 32) problems.push("APP_SECRET must be a random string of 32+ characters.");
+  if (env.APP_PASSWORD === "folio" || env.APP_PASSWORD.length < 12) problems.push("APP_PASSWORD must be 12+ characters.");
+  // Without Postgres, data would live on the container's disk and vanish on redeploy.
+  if (!env.DATABASE_URL && process.env.ALLOW_EMBEDDED_DB !== "true") problems.push("DATABASE_URL is required in production.");
+  if (problems.length) throw new Error(`Folio can't start:\n- ${problems.join("\n- ")}`);
+  if (env.PUBLIC_URL.includes("localhost")) console.warn("PUBLIC_URL is localhost: Twilio webhooks will fail signature checks.");
 }

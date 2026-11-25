@@ -45,7 +45,9 @@ npm ci
 npm run dev                # API on :3000, web on http://localhost:5173
 ```
 
-Leave `DATABASE_URL` empty in development to use an embedded Postgres (PGlite) in `./data`. In production, point it at Postgres; migrations run on boot. `docker build -t folio . && docker run -p 3000:3000 --env-file .env folio`.
+Leave `DATABASE_URL` empty in development to use an embedded Postgres (PGlite) in `./data`. In production, point it at Postgres; migrations run on boot.
+
+**Hosting:** see [DEPLOY.md](DEPLOY.md) for Railway (step by step). Any Docker host works: `docker build -t folio . && docker run -p 3000:3000 --env-file .env folio`.
 
 Run a single instance: the scheduler (automations every minute, imports daily) runs in-process.
 
